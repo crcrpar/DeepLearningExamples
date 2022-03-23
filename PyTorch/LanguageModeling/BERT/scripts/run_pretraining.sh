@@ -179,6 +179,7 @@ CMD+=" --max_steps=$train_steps"
 CMD+=" --warmup_proportion=$warmup_proportion"
 CMD+=" --num_steps_per_checkpoint=$save_checkpoint_steps"
 CMD+=" --learning_rate=$learning_rate"
+CMD+=" --new_lamb=$new_lamb"
 CMD+=" --seed=$seed"
 CMD+=" $PREC"
 CMD+=" $ACCUMULATE_GRADIENTS"
@@ -244,86 +245,87 @@ if [ "$allreduce_post_accumulation_fp16" == "true" ] ; then
    ALL_REDUCE_POST_ACCUMULATION_FP16="--allreduce_post_accumulation_fp16"
 fi
 
-if [ ! -d "${DATA_DIR_PHASE2}" ] || [ -z "$(ls -A ${DATA_DIR_PHASE2})" ]; then
-   echo "Warning! ${DATA_DIR_PHASE2} directory missing."
-   if [ ! -d "${wikipedia_source}" ] || [ -z "$(ls -A ${wikipedia_source})" ]; then
-      echo "Error! ${wikipedia_source} directory missing. Training cannot start!"
-      return -1
-   fi
-   preprocess_cmd=" \
-      mpirun \
-         --oversubscribe \
-         --allow-run-as-root \
-         -np ${num_dask_workers} \
-         -x LD_PRELOAD=/opt/conda/lib/libjemalloc.so \
-            preprocess_bert_pretrain \
-               --schedule mpi \
-               --vocab-file ${VOCAB_FILE} \
-               --wikipedia ${wikipedia_source} \
-               --sink ${DATA_DIR_PHASE2} \
-               --target-seq-length 512 \
-               --num-blocks ${num_blocks} \
-               --sample-ratio ${sample_ratio} \
-               ${phase2_bin_size_flag} \
-               ${masking_flag} \
-               --seed ${seed}"
-   echo "Running ${preprocess_cmd} ..."
-   ${preprocess_cmd}
+# if [ ! -d "${DATA_DIR_PHASE2}" ] || [ -z "$(ls -A ${DATA_DIR_PHASE2})" ]; then
+#    echo "Warning! ${DATA_DIR_PHASE2} directory missing."
+#    if [ ! -d "${wikipedia_source}" ] || [ -z "$(ls -A ${wikipedia_source})" ]; then
+#       echo "Error! ${wikipedia_source} directory missing. Training cannot start!"
+#       return -1
+#    fi
+#    preprocess_cmd=" \
+#       mpirun \
+#          --oversubscribe \
+#          --allow-run-as-root \
+#          -np ${num_dask_workers} \
+#          -x LD_PRELOAD=/opt/conda/lib/libjemalloc.so \
+#             preprocess_bert_pretrain \
+#                --schedule mpi \
+#                --vocab-file ${VOCAB_FILE} \
+#                --wikipedia ${wikipedia_source} \
+#                --sink ${DATA_DIR_PHASE2} \
+#                --target-seq-length 512 \
+#                --num-blocks ${num_blocks} \
+#                --sample-ratio ${sample_ratio} \
+#                ${phase2_bin_size_flag} \
+#                ${masking_flag} \
+#                --seed ${seed}"
+#    echo "Running ${preprocess_cmd} ..."
+#    ${preprocess_cmd}
+# 
+#    balance_load_cmd=" \
+#       mpirun \
+#          --oversubscribe \
+#          --allow-run-as-root \
+#          -np ${num_dask_workers} \
+#             balance_dask_output \
+#                --indir ${DATA_DIR_PHASE2} \
+#                --num-shards ${num_blocks}"
+#    echo "Running ${balance_load_cmd} ..."
+#    ${balance_load_cmd}
+# fi
+# echo $DATA_DIR_PHASE2
+# INPUT_DIR=$DATA_DIR_PHASE2
+# CMD=" $CODEDIR/run_pretraining.py"
+# CMD+=" --input_dir=$DATA_DIR_PHASE2"
+# CMD+=" --output_dir=$CHECKPOINTS_DIR"
+# CMD+=" --config_file=$BERT_CONFIG"
+# CMD+=" --vocab_file=$VOCAB_FILE"
+# CMD+=" --train_batch_size=$train_batch_size_phase2"
+# CMD+=" --max_seq_length=512"
+# CMD+=" --max_predictions_per_seq=80"
+# CMD+=" --max_steps=$train_steps_phase2"
+# CMD+=" --warmup_proportion=$warmup_proportion_phase2"
+# CMD+=" --num_steps_per_checkpoint=$save_checkpoint_steps"
+# CMD+=" --learning_rate=$learning_rate_phase2"
+# CMD+=" --new_lamb=$new_lamb"
+# CMD+=" --seed=$seed"
+# CMD+=" $PREC"
+# CMD+=" $ACCUMULATE_GRADIENTS"
+# CMD+=" $CHECKPOINT"
+# CMD+=" $ALL_REDUCE_POST_ACCUMULATION"
+# CMD+=" $ALL_REDUCE_POST_ACCUMULATION_FP16"
+# CMD+=" --do_train --phase2 --resume_from_checkpoint --phase1_end_step=$train_steps"
+# CMD+=" --json-summary ${RESULTS_DIR}/dllogger.json "
+# CMD+=" --disable_progress_bar"
+# CMD+=" --num_workers=${num_workers}"
 
-   balance_load_cmd=" \
-      mpirun \
-         --oversubscribe \
-         --allow-run-as-root \
-         -np ${num_dask_workers} \
-            balance_dask_output \
-               --indir ${DATA_DIR_PHASE2} \
-               --num-shards ${num_blocks}"
-   echo "Running ${balance_load_cmd} ..."
-   ${balance_load_cmd}
-fi
-echo $DATA_DIR_PHASE2
-INPUT_DIR=$DATA_DIR_PHASE2
-CMD=" $CODEDIR/run_pretraining.py"
-CMD+=" --input_dir=$DATA_DIR_PHASE2"
-CMD+=" --output_dir=$CHECKPOINTS_DIR"
-CMD+=" --config_file=$BERT_CONFIG"
-CMD+=" --vocab_file=$VOCAB_FILE"
-CMD+=" --train_batch_size=$train_batch_size_phase2"
-CMD+=" --max_seq_length=512"
-CMD+=" --max_predictions_per_seq=80"
-CMD+=" --max_steps=$train_steps_phase2"
-CMD+=" --warmup_proportion=$warmup_proportion_phase2"
-CMD+=" --num_steps_per_checkpoint=$save_checkpoint_steps"
-CMD+=" --learning_rate=$learning_rate_phase2"
-CMD+=" --seed=$seed"
-CMD+=" $PREC"
-CMD+=" $ACCUMULATE_GRADIENTS"
-CMD+=" $CHECKPOINT"
-CMD+=" $ALL_REDUCE_POST_ACCUMULATION"
-CMD+=" $ALL_REDUCE_POST_ACCUMULATION_FP16"
-CMD+=" --do_train --phase2 --resume_from_checkpoint --phase1_end_step=$train_steps"
-CMD+=" --json-summary ${RESULTS_DIR}/dllogger.json "
-CMD+=" --disable_progress_bar"
-CMD+=" --num_workers=${num_workers}"
+# CMD="python3 -m torch.distributed.launch --nproc_per_node=$num_gpus $CMD"
 
-CMD="python3 -m torch.distributed.launch --nproc_per_node=$num_gpus $CMD"
+# if [ "$create_logfile" = "true" ] ; then
+#   export GBS=$(expr $train_batch_size_phase2 \* $num_gpus)
+#   printf -v TAG "pyt_bert_pretraining_phase2_%s_gbs%d" "$precision" $GBS
+#   DATESTAMP=`date +'%y%m%d%H%M%S'`
+#   LOGFILE=$RESULTS_DIR/$job_name.$TAG.$DATESTAMP.log
+#   printf "Logs written to %s\n" "$LOGFILE"
+# fi
 
-if [ "$create_logfile" = "true" ] ; then
-  export GBS=$(expr $train_batch_size_phase2 \* $num_gpus)
-  printf -v TAG "pyt_bert_pretraining_phase2_%s_gbs%d" "$precision" $GBS
-  DATESTAMP=`date +'%y%m%d%H%M%S'`
-  LOGFILE=$RESULTS_DIR/$job_name.$TAG.$DATESTAMP.log
-  printf "Logs written to %s\n" "$LOGFILE"
-fi
-
-set -x
-if [ -z "$LOGFILE" ] ; then
-   $CMD
-else
-   (
-     $CMD
-   ) |& tee $LOGFILE
-fi
+# set -x
+# if [ -z "$LOGFILE" ] ; then
+#    $CMD
+# else
+#    (
+#      $CMD
+#    ) |& tee $LOGFILE
+# fi
 
 set +x
 
