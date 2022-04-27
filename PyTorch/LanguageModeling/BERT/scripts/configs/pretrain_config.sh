@@ -13,6 +13,104 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+a100-40g_2gpu_fp16 ()
+{
+    train_batch_size="1024"
+    learning_rate="7.5e-4"
+    new_lamb="false"
+    precision="fp16"
+    num_gpus=2
+    warmup_proportion="0.2843"
+    train_steps=7038
+    save_checkpoint_steps=200
+    resume_training="false"
+    create_logfile="true"
+    accumulate_gradients="true"
+    gradient_accumulation_steps=32
+    seed=42
+    job_name="bert_lamb_pretraining_old_fused_lamb"
+    allreduce_post_accumulation="true"
+    allreduce_post_accumulation_fp16="false"
+    train_batch_size_phase2=512
+    learning_rate_phase2="4e-3"
+    warmup_proportion_phase2="0.128"
+    train_steps_phase2=1563
+    gradient_accumulation_steps_phase2=128
+    DATASET=pretrain/phase1/unbinned/parquet # change this for other datasets
+    DATA_DIR_PHASE1="$BERT_PREP_WORKING_DIR/${DATASET}/"
+    BERT_CONFIG=bert_configs/large.json
+    CODEDIR="/mkozuki/repositories/DeepLearningExamples/PyTorch/LanguageModeling/BERT"
+    init_checkpoint="None"
+    DATASET2=pretrain/phase2/bin_size_64/parquet # change this for other datasets
+    DATA_DIR_PHASE2="$BERT_PREP_WORKING_DIR/${DATASET2}/"
+    wikipedia_source=$BERT_PREP_WORKING_DIR/wikipedia/source/
+    num_dask_workers=128
+    num_shards_per_worker=128
+    num_workers=4
+    sample_ratio="0.9"
+    phase2_bin_size=64
+    masking=static
+    echo $train_batch_size $learning_rate $precision $num_gpus \
+         $warmup_proportion $train_steps $save_checkpoint_steps \
+         $resume_training $create_logfile $accumulate_gradients  \
+         $gradient_accumulation_steps $seed $job_name $allreduce_post_accumulation \
+         $allreduce_post_accumulation_fp16 $train_batch_size_phase2 $learning_rate_phase2 \
+         $warmup_proportion_phase2 $train_steps_phase2 $gradient_accumulation_steps_phase2 \
+         $DATA_DIR_PHASE1 $DATA_DIR_PHASE2 $CODEDIR $init_checkpoint \
+         $wikipedia_source $num_dask_workers $num_shards_per_worker $num_workers \
+         $sample_ratio $phase2_bin_size $masking \
+         $BERT_CONFIG
+}
+
+a100-40g_2gpu_fp16_new_lamb ()
+{
+    train_batch_size="1024"
+    learning_rate="7.5e-4"
+    new_lamb="true"
+    precision="fp16"
+    num_gpus=2
+    warmup_proportion="0.2843"
+    train_steps=7038
+    save_checkpoint_steps=200
+    resume_training="false"
+    create_logfile="true"
+    accumulate_gradients="true"
+    gradient_accumulation_steps=32
+    seed=42
+    job_name="bert_lamb_pretraining_new_fused_lamb"
+    allreduce_post_accumulation="true"
+    allreduce_post_accumulation_fp16="false"
+    train_batch_size_phase2=512
+    learning_rate_phase2="4e-3"
+    warmup_proportion_phase2="0.128"
+    train_steps_phase2=1563
+    gradient_accumulation_steps_phase2=128
+    DATASET=pretrain/phase1/unbinned/parquet # change this for other datasets
+    DATA_DIR_PHASE1="$BERT_PREP_WORKING_DIR/${DATASET}/"
+    BERT_CONFIG=bert_configs/large.json
+    CODEDIR="/mkozuki/repositories/DeepLearningExamples/PyTorch/LanguageModeling/BERT"
+    init_checkpoint="None"
+    DATASET2=pretrain/phase2/bin_size_64/parquet # change this for other datasets
+    DATA_DIR_PHASE2="$BERT_PREP_WORKING_DIR/${DATASET2}/"
+    wikipedia_source=$BERT_PREP_WORKING_DIR/wikipedia/source/
+    num_dask_workers=128
+    num_shards_per_worker=128
+    num_workers=4
+    sample_ratio="0.9"
+    phase2_bin_size=64
+    masking=static
+    echo $train_batch_size $learning_rate $precision $num_gpus \
+         $warmup_proportion $train_steps $save_checkpoint_steps \
+         $resume_training $create_logfile $accumulate_gradients  \
+         $gradient_accumulation_steps $seed $job_name $allreduce_post_accumulation \
+         $allreduce_post_accumulation_fp16 $train_batch_size_phase2 $learning_rate_phase2 \
+         $warmup_proportion_phase2 $train_steps_phase2 $gradient_accumulation_steps_phase2 \
+         $DATA_DIR_PHASE1 $DATA_DIR_PHASE2 $CODEDIR $init_checkpoint \
+         $wikipedia_source $num_dask_workers $num_shards_per_worker $num_workers \
+         $sample_ratio $phase2_bin_size $masking \
+         $BERT_CONFIG
+}
+
 dgxa100-80g_8gpu_fp16 ()
 {
     train_batch_size="8192"

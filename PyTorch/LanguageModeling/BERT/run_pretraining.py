@@ -40,7 +40,8 @@ import math
 
 import modeling
 from schedulers import PolyWarmUpScheduler
-from lamb_amp_opt.fused_lamb import FusedLAMBAMP
+# from lamb_amp_opt.fused_lamb import FusedLAMBAMP
+from apex.optimizers import FusedLAMB, FusedMixedPrecisionLamb
 
 from file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 from utils import is_main_process, format_step, get_world_size, get_rank
@@ -183,6 +184,7 @@ def parse_arguments():
                         default=32,
                         type=int,
                         help="Total batch size for training.")
+    parser.add_argument("--new_lamb", type=bool, help="Use this flag to use FusedMixedPrecisionLamb")
     parser.add_argument("--learning_rate",
                         default=5e-5,
                         type=float,
@@ -415,8 +417,10 @@ def prepare_model_and_optimizer(args, device, sequence_output_is_dense):
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
 
-    optimizer = FusedLAMBAMP(optimizer_grouped_parameters,
-                             lr=args.learning_rate)
+    if args.new_lamb:
+        optimizer = FusedMixedPrecisionLamb(optimizer_grouped_parameters, lr=args.learning_rate)
+    else:
+        optimizer = FusedLAMB(optimizer_grouped_parameters, lr=args.learning_rate)
     lr_scheduler = PolyWarmUpScheduler(optimizer,
                                        warmup=args.warmup_proportion,
                                        total_steps=args.max_steps,
@@ -463,7 +467,9 @@ def prepare_model_and_optimizer(args, device, sequence_output_is_dense):
         if args.gradient_accumulation_steps > 1:
             model.register_comm_hook(None, scale_by_grad_accum_steps_wrapper(allreduce_hook))
 
-    optimizer.setup_fp32_params()
+    if hasattr(optimizer, "setup_fp32_params"):
+        optimizer.setup_fp32_params()
+      
 
     criterion = BertPretrainingCriterion(config.vocab_size, sequence_output_is_dense=sequence_output_is_dense)
 
